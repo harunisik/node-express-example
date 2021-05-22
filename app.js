@@ -1,12 +1,47 @@
-var express = require("express");
+const express = require('express');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const Book = require('./models/bookModel');
 
-var app = express();
+const port = process.env.PORT || 3000;
+const app = express();
+const bookRouter = express.Router();
 
-var port = process.env.PORT || 3000;
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-app.get("/", (req, res) => {
-  res.send("Welcome to my API.");
+mongoose.connect('mongodb://localhost/bookAPI');
+
+bookRouter
+  .route('/books')
+  .post((req, res) => {
+    const book = new Book(req.body);
+    book.save();
+    res.status(201).json(book);
+  })
+  .get((req, res) => {
+    const { query } = req;
+
+    Book.find(query, (err, books) => {
+      if (err) {
+        res.send(err);
+      }
+
+      return res.json(books);
+    });
+  });
+
+bookRouter.route('/books/:bookId').get((req, res) => {
+  Book.findById(req.params.bookId, (err, book) => {
+    if (err) {
+      res.send(err);
+    }
+
+    return res.json(book);
+  });
 });
+
+app.use('/api', bookRouter);
 
 app.listen(port, () => {
   console.log(`Server is listening on port ${port}`);
